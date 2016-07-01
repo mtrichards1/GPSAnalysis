@@ -8,103 +8,31 @@ using System.IO;
 
 namespace TCXconverter
 {
-    class Journey
-    {
-        private List<Position> positions;
-        private int seconds; //journey time in seconds
-        private double distance; //distance in meters
-        private double maxSpeed; // in kmph
-        public string name;
-
-        public Journey(string name, int time, double distance, double maxspeed, List<Position> positions)
-        {
-            this.name = name;
-            this.distance = distance;
-            this.maxSpeed = maxspeed;
-            this.positions = positions;
-            this.seconds = time;
-        }
-
-        public int Seconds
-        {
-            get
-            {
-                return seconds;
-            }
-        }
-
-        public double Maxspeed
-        {
-            get
-            {
-                return maxSpeed;
-            }
-        }
-
-        public double Distance
-        {
-            get
-            {
-                return distance;
-            }
-        }
-
-        public List<Position> Positions
-        {
-            get
-            {
-                return positions;
-            }
-        }
-
-        // name can be left public as this can be changed - it does not need to relate to the list of positions.
-
-        
-        public void addPosition(Position p){
-            // will add position - will not automatically recalculate the major statistics within the object. 
-                 
-
-
-            }
-
-            public double calcMaxspeed() //updates the maxspeed using the positions data
-            {
-                return 1.0;
-            }
-            public double calcDistance() //updates the Distance using the positions data
-            {
-                return 1.0;
-            }
-            public double calcSeconds() //total time (not moving time)
-            {
-               // seconds = p.d - positions(positions.Count - 1).d;
-
-                return 1.0;
-            }
-
-
-    }
+    
     class Program
-    {
-
-        
+    {  
         static void Main(string[] args)
         {
             string path=null;
 
             XmlDocument doc = new XmlDocument();
             
-            if (args.Length == 0)
-            {
                   bool error = true;
                 do{
             try{
-
-                
+      
                 Console.WriteLine("Please enter a file location for the TCX file:");
                 path = Console.ReadLine();
 
-            doc.Load(path);
+                // Need to use workaround to Load in the tcx file to memory and edit it before parsing.  Could not figure out how to deal with the
+                //schema line containing <TrainingCenterDatabase xsi:schemaLocation....etc.
+                
+                var oldLines = File.ReadAllLines(path);
+                var newLines = oldLines.Where(line => !line.Contains("TrainingCenterDatabase"));
+                // File.WriteAllLines(path, newLines); // needed if we want to update the original text file
+
+
+                doc.LoadXml(String.Join(" ", newLines)); // converts string array to normal string before loading into the xmldocument
 
             Console.WriteLine("pathloaded");
                 error = false;
@@ -116,26 +44,13 @@ namespace TCXconverter
             }
             }while(error);
 
-
-
-            }
-
-            else
-            {
-                path = args[0];
-            }
-
             //http://www.doublecloud.org/2013/08/parsing-xml-in-c-a-quick-working-sample/ code from here
 
-            
+
             //doc.Load(@"C:\Users\Martin\Downloads\Morning_Ride.tcx"); used for testing
-                     
-            
 
             try
             {
-
-
 
                 XmlNodeList nodes = doc.DocumentElement.SelectNodes("/Activities/Activity/Lap");
 
@@ -151,30 +66,23 @@ namespace TCXconverter
                 Console.WriteLine("Total Distance = " + dist + " meters");
 
                 Console.WriteLine();
-
-
-                
+            
                 nodes = doc.DocumentElement.SelectNodes("/Activities/Activity/Lap/Track/Trackpoint");
                 
                 Console.WriteLine("number of points:" + nodes.Count);
                 List<Position> ps = new List<Position>();
                 // extracting stats data from tcx file
-                
 
-                string dt;
+                string dt; // used to hold the string in the format 2016-06-27T06:55:26Z once extracted from xml doc
                 Position pos;
 
                 foreach (XmlNode node in nodes)
                 {
-                    pos = new Position();
-                   // Console.WriteLine(node.InnerText);
-
-                    //Console.WriteLine(node.SelectNodes("/Position").Item(0).InnerText);
-                    
+                    pos = new Position(); // creates new position object to be added.           
                     
                     pos.alt = double.Parse(node.SelectSingleNode("AltitudeMeters").InnerText);
                     
-                        // parsing the dt format of 2016-06-27T06:55:26Z
+                    // parsing the string format of 2016-06-27T06:55:26Z
                     dt = node.SelectSingleNode("Time").InnerText;
                     int year = int.Parse(dt.Substring(0,4));
                     int month = int.Parse(dt.Substring(5,2));
@@ -191,7 +99,7 @@ namespace TCXconverter
                     xx = node.SelectNodes("Position/LongitudeDegrees");
                     pos.lon = double.Parse(xx.Item(0).InnerText);
 
-                    ps.Add(pos);
+                    ps.Add(pos);  
                     
                 }
 
